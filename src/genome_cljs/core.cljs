@@ -70,8 +70,9 @@
     (go
       (let [all-klicksters (<! (<all-active-users))
             all-userids (extract-userids all-klicksters)
-            all-profiles (<! (<get-all-active-userid-profiles all-userids))]
-        (>! out all-profiles)))
+            all-profiles (<! (<get-all-active-userid-profiles all-userids))
+            all-proper-profiles (map add-full-picturepath all-profiles)]
+        (>! out all-proper-profiles)))
     out))
 
 (defn <all-active-klickster-profiles-filtered 
@@ -83,4 +84,3 @@
           (filter (apply every-pred pred-fns) (<! (<get-all-active-klickster-profiles)))))
     out))
 
-(defn gtest [] :quux )
