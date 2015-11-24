@@ -8,7 +8,11 @@
 
 (def *genome-url* "https://genome.klick.com:443")
 (def *genome-api-url* (str *genome-url* "/api/"))
-(defn genome [url] (str *genome-api-url* url))
+(defn genome [& urls] (apply str *genome-api-url* urls))
+
+(defn dbg
+  ([msg x ] (prn msg x) x)
+  ([x] (prn x) x))
 
 (defn- extract-content
   "Extract the content from a typical Genome reply"
@@ -84,3 +88,39 @@
           (filter (apply every-pred pred-fns) (<! (<get-all-active-klickster-profiles)))))
     out))
 
+(defn <current-user
+  "Profile of current user. This includes the following keys:
+  #{:LaborCategoryID :FirstName :LaborRoleID :PhoneExt :WorkTeamID :BusinessUnitName :HasRestrictedAccess :PhotoFileName :EmployeeTypeID :UserSystemID :Email :Title :IsClient :SupervisorUserID :Hidden :LastName :TimeZoneName :IsNotAPerson :UserID :JobTypeName :HasDirectReports :BusinessUnitID :CountryID :LaborRoleName :CompanyBusinessUnitID :TimeZoneID :PhotoPath :CompanyBusinessUnitName :EmployeeTypeName :Enabled :SupervisorFirstName :JobTypeID :Created :Username :SupervisorLastName :WorkTeamName :CountryName}
+
+this is not the same a call to the User/UserID=... webservice. If you need that one, call <current-user-profile"
+  []
+  (let [out (chan)]
+    (go
+      (->> (<! (http/jsonp (genome "User/Current")
+                          {:channel (chan 1 (extract-content))}))
+           (map add-full-picturepath)
+           first
+           (>! out)))
+    out))
+
+
+
+(defn <current-user-profile
+  "Gets the User/UserID=... result for the current user. This includes the keys
+  #{:IsObjectivesAdmin :LaborCategoryID :FirstName :LaborRoleID :OversightPercent :WorkTeamID :BusinessUnitName :MobileNumber :PhotoFileName :TicketTracking_TimeSheetCacheID :IsCandidateAdmin :CanCommunicateClient :UserSystemID :Email :CreatedDate :BillingTargetHoursPerYear :Title :MobileNumberCountryCode :IsClient :IsScheduleConfirmationRulesEnforced :LastName :IsScheduleAdmin :UserName :Extension :TimeZoneName :HomeNumber :IsNotAPerson :UserID :KeyscanUpdated :HasDirectReports :IsAdmin :BusinessUnitID :CountryID :TicketTracking_TicketID :CompanyBusinessUnitID :TimeZoneID :PhotoPath :Name :Roles :CompanyBusinessUnitName :IsWeeklyReviewAdmin :Enabled :TagName :Supervisors :KeyscanStatus :OutOfOfficeReason :Status}
+ This is not the same information you get from User/Current. For that, call <current-user"
+  []
+  
+  (let [out (chan)]
+    (go
+      (as-> (<! (<current-user)) $
+             (:UserID $)
+             (<! (<users-details [$]))
+             (map add-full-picturepath $)
+             (first $)
+             (>! out $)))
+    out))
+
+(defn profile-link [user]
+  ;;https://genome.klick.com/user/index.html#/5702
+  (str *genome-url* "/user/index.html#/" (:UserID user)))
