@@ -6,9 +6,19 @@
 
 (enable-console-print!)
 
+(defonce *auth-token* (atom nil))
+(defn get-auth-token [] @*auth-token*)
+(defn set-auth-token [val] (reset! *auth-token* val))
+
 (def *genome-url* "https://genome.klick.com:443")
 (def *genome-api-url* (str *genome-url* "/api/"))
-(defn genome [& urls] (apply str *genome-api-url* urls))
+(defn genome [& urls]
+  (str *genome-api-url* (apply str urls)
+         (when (get-auth-token)
+           (if (some #{\?} urls)
+             (str "?_=" (get-auth-token))
+             (str "&_=" (get-auth-token))))))
+
 
 (defn dbg
   ([msg x ] (prn msg x) x)
