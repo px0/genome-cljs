@@ -13,12 +13,15 @@
 (def *genome-url* "https://genome.klick.com:443")
 (def *genome-api-url* (str *genome-url* "/api/"))
 (defn genome [& urls]
-  (str *genome-api-url* (apply str urls)
-         (when (get-auth-token)
-           (if (some #{\?} urls)
-             (str "?_=" (get-auth-token))
-             (str "&_=" (get-auth-token))))))
+  (str *genome-api-url* (apply str urls)))
 
+(defn auth-token-query-param
+  ([]
+   (auth-token-query-param {}))
+  ([m]
+   (if (get-auth-token)
+     (merge-with merge m {:query-params {:_ (get-auth-token)}})
+     m)))
 
 (defn dbg
   ([msg x ] (prn msg x) x)
@@ -33,7 +36,8 @@
   "Gets all active Genome users"
   []
   (http/jsonp (genome "User/Search")
-            {:channel (chan 1 (extract-content))}))
+              (auth-token-query-param
+               {:channel (chan 1 (extract-content))})))
 
 (defn extract-userids
   "Gets all userids from a list of users"
@@ -48,8 +52,9 @@
         out (chan)]
     (go
       (>! out (<! (http/jsonp (genome "User.json")
-                              {:query-params {:UserIDs param-string}
-                               :channel (chan 1 (extract-content))})))
+                              (auth-token-query-param 
+                               {:query-params {:UserIDs param-string}
+                                :channel (chan 1 (extract-content))}))))
       (async/close! out))
     out))
 
@@ -107,7 +112,7 @@ this is not the same a call to the User/UserID=... webservice. If you need that 
   (let [out (chan)]
     (go
       (->> (<! (http/jsonp (genome "User/Current")
-                          {:channel (chan 1 (extract-content))}))
+                           (auth-token-query-param {:channel (chan 1 (extract-content))})))
            (map add-full-picturepath)
            first
            (>! out)))
