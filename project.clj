@@ -1,6 +1,6 @@
-(defproject genome-cljs "0.1.0-SNAPSHOT"
-  :description "FIXME: write this!"
-  :url "http://example.com/FIXME"
+(defproject genome-cljs "0.1.0"
+  :description "Genome ClojureScript Wrapper!"
+  :url "https://github.com/px0/genome-cljs"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
